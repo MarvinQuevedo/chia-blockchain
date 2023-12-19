@@ -38,6 +38,13 @@ class HintStore:
             await cursor.close()
         return [bytes32(row[0]) for row in rows]
 
+    async def get_coins_ids_by_hints(self, hints: List[bytes], *, max_items: int = 50000) -> List[bytes32]:
+        async with self.db_wrapper.reader_no_transaction() as conn:
+            cursor = await conn.execute("SELECT coin_id, hint from hints WHERE hint IN (?) LIMIT ?", (hints, max_items))
+            rows = await cursor.fetchall()
+            await cursor.close()
+        return [(bytes32(row[0]), row[1]) for row in rows]
+
     async def add_hints(self, coin_hint_list: List[Tuple[bytes32, bytes]]) -> None:
         if len(coin_hint_list) == 0:
             return None
