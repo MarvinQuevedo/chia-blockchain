@@ -352,19 +352,24 @@ async def test1(two_nodes_sim_and_wallets_services, self_hostname, consensus_mod
         ]
 
         memo = 32 * b"\f"
+        memo2 = 32 * b"\b"
 
-        for i in range(2):
+        for i in range(3):
             await full_node_api_1.farm_new_transaction_block(FarmNewBlockProtocol(ph_2))
 
             state = await client.get_blockchain_state()
             block = await client.get_block(state["peak"].header_hash)
 
             coin_to_spend = list(set(block.get_included_reward_coins()))[0]
-
-            spend_bundle = wallet.generate_signed_transaction(coin_to_spend.amount, ph_2, coin_to_spend, memo=memo)
+            memo_ = memo if i < 2 else memo2
+            spend_bundle = wallet.generate_signed_transaction(coin_to_spend.amount, ph_2, coin_to_spend, memo=memo_)
             await client.push_tx(spend_bundle)
 
         await full_node_api_1.farm_new_transaction_block(FarmNewBlockProtocol(ph_2))
+
+        # check get_coin_records_by_hints
+        coin_records = await client.get_coin_records_by_hints([memo, memo2])
+        assert len(coin_records) == 3
 
         coin_to_spend = (await client.get_coin_records_by_hint(memo))[0].coin
 
